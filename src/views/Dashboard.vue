@@ -13,8 +13,16 @@ const loading = ref(true)
 const errorMessage = ref('')
 
 const showCreateTaskModal = ref(false)
+const showEditTaskModal = ref(false)
+const editingTaskId = ref(null)
 
 const newTask = ref({
+  shortDescription: '',
+  longDescription: '',
+  dueDate: '',
+})
+
+const editTask = ref({
   shortDescription: '',
   longDescription: '',
   dueDate: '',
@@ -99,6 +107,48 @@ const createTask = async () => {
     await fetchTasksByList(selectedTaskListId.value)
   } catch (error) {
     errorMessage.value = 'Impossible de créer la tâche.'
+    console.error(error)
+  }
+}
+
+const openEditModal = (task) => {
+  editingTaskId.value = task.id
+  editTask.value = {
+    shortDescription: task.shortDescription || '',
+    longDescription: task.longDescription || '',
+    dueDate: task.dueDate ? new Date(task.dueDate).toISOString().split('T')[0] : '',
+  }
+  showEditTaskModal.value = true
+}
+
+const updateTask = async () => {
+  errorMessage.value = ''
+
+  try {
+    await axios.patch(
+      `http://localhost:3000/tasks/${editingTaskId.value}`,
+      {
+        shortDescription: editTask.value.shortDescription,
+        longDescription: editTask.value.longDescription,
+        dueDate: editTask.value.dueDate,
+      },
+      {
+        headers: getAuthHeaders(),
+      }
+    )
+
+    showEditTaskModal.value = false
+    editingTaskId.value = null
+
+    editTask.value = {
+      shortDescription: '',
+      longDescription: '',
+      dueDate: '',
+    }
+
+    await fetchTasksByList(selectedTaskListId.value)
+  } catch (error) {
+    errorMessage.value = 'Impossible de modifier la tâche.'
     console.error(error)
   }
 }
@@ -285,6 +335,14 @@ onMounted(() => {
               </button>
 
               <button
+                @click="openEditModal(task)"
+                class="h-12 w-12 rounded-2xl flex items-center justify-center text-lg bg-[#1E2330] text-[#D7E3FF] hover:bg-[#293246] transition hover:scale-105"
+                title="Modifier la tâche"
+              >
+                ✏️
+              </button>
+
+              <button
                 @click="deleteTask(task.id)"
                 class="h-12 w-12 rounded-2xl flex items-center justify-center text-lg bg-[#2B1717] text-[#F5C2C2] hover:bg-[#3A1E1E] transition hover:scale-105"
                 title="Supprimer la tâche"
@@ -358,6 +416,49 @@ onMounted(() => {
             class="px-4 py-2 rounded-lg bg-[#E7DDD0] text-black font-semibold hover:opacity-90 transition"
           >
             Créer
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div
+      v-if="showEditTaskModal"
+      class="fixed inset-0 bg-black/60 flex items-center justify-center z-50"
+    >
+      <div class="bg-[#111112] border border-[#2A2A2E] p-8 rounded-2xl w-[500px] space-y-4 shadow-2xl">
+        <h2 class="text-2xl font-bold">Modifier la tâche</h2>
+
+        <input
+          v-model="editTask.shortDescription"
+          placeholder="Titre"
+          class="w-full p-3 rounded-lg bg-[#1A1A1D] border border-[#2A2A2E] text-[#F5F1E8] outline-none"
+        />
+
+        <textarea
+          v-model="editTask.longDescription"
+          placeholder="Description"
+          class="w-full p-3 rounded-lg bg-[#1A1A1D] border border-[#2A2A2E] text-[#F5F1E8] outline-none min-h-[120px]"
+        ></textarea>
+
+        <input
+          type="date"
+          v-model="editTask.dueDate"
+          class="w-full p-3 rounded-lg bg-[#1A1A1D] border border-[#2A2A2E] text-[#F5F1E8] outline-none"
+        />
+
+        <div class="flex justify-end gap-3">
+          <button
+            @click="showEditTaskModal = false"
+            class="px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 transition"
+          >
+            Annuler
+          </button>
+
+          <button
+            @click="updateTask"
+            class="px-4 py-2 rounded-lg bg-[#E7DDD0] text-black font-semibold hover:opacity-90 transition"
+          >
+            Enregistrer
           </button>
         </div>
       </div>
