@@ -122,6 +122,23 @@ const toggleTaskStatus = async (task) => {
   }
 }
 
+const deleteTask = async (taskId) => {
+  const confirmed = window.confirm('Voulez-vous vraiment supprimer cette tâche ?')
+
+  if (!confirmed) return
+
+  try {
+    await axios.delete(`http://localhost:3000/tasks/${taskId}`, {
+      headers: getAuthHeaders(),
+    })
+
+    await fetchTasksByList(selectedTaskListId.value)
+  } catch (error) {
+    errorMessage.value = 'Impossible de supprimer la tâche.'
+    console.error(error)
+  }
+}
+
 const initDashboard = async () => {
   loading.value = true
   errorMessage.value = ''
@@ -249,21 +266,32 @@ onMounted(() => {
           :key="task.id"
           class="rounded-3xl bg-[#141416]/90 backdrop-blur-xl border border-[#2A2A2E] p-8 shadow-xl transition hover:-translate-y-1 hover:border-[#3A3A40]"
         >
-          <div class="mb-5 flex items-center justify-between">
+          <div class="mb-5 flex items-center justify-between gap-4">
             <h3
-              class="text-xl font-semibold"
+              class="text-xl font-semibold flex-1"
               :class="task.isCompleted ? 'text-[#8E877D] line-through' : 'text-[#F5F1E8]'"
             >
               {{ task.shortDescription }}
             </h3>
 
-            <button
-              @click="toggleTaskStatus(task)"
-              class="h-12 w-12 rounded-2xl flex items-center justify-center text-lg transition hover:scale-105"
-              :class="task.isCompleted ? 'bg-[#1F3328] text-[#B7E4C7]' : 'bg-[#2A241C] text-[#E7DDD0]'"
-            >
-              {{ task.isCompleted ? '✓' : '•' }}
-            </button>
+            <div class="flex items-center gap-3">
+              <button
+                @click="toggleTaskStatus(task)"
+                class="h-12 w-12 rounded-2xl flex items-center justify-center text-lg transition hover:scale-105"
+                :class="task.isCompleted ? 'bg-[#1F3328] text-[#B7E4C7]' : 'bg-[#2A241C] text-[#E7DDD0]'"
+                title="Changer le statut"
+              >
+                {{ task.isCompleted ? '✓' : '•' }}
+              </button>
+
+              <button
+                @click="deleteTask(task.id)"
+                class="h-12 w-12 rounded-2xl flex items-center justify-center text-lg bg-[#2B1717] text-[#F5C2C2] hover:bg-[#3A1E1E] transition hover:scale-105"
+                title="Supprimer la tâche"
+              >
+                🗑
+              </button>
+            </div>
           </div>
 
           <p
