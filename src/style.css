@@ -1,1 +1,16 @@
 @import "tailwindcss";
+body {
+  font-family: "Inter", sans-serif;
+  font-size: 18px;
+  background-color: #0b0b0c;
+  color: #f5f1e8;
+}
+
+h1,
+h2,
+h3,
+h4,
+button,
+nav {
+  font-family: "Space Grotesk", sans-serif;
+}

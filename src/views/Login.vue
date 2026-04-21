@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
+import logoVideo from '../assets/logo.mp4'
 
 const router = useRouter()
 
@@ -33,42 +34,62 @@ const handleLogin = async () => {
 </script>
 
 <template>
-  <div class="min-h-screen flex bg-slate-950 text-white">
-    <div class="hidden md:flex w-1/2 items-center justify-center bg-gradient-to-br from-indigo-900 via-slate-950 to-black p-12">
-      <div class="max-w-md">
-        <h1 class="text-4xl font-bold mb-6">
-          Bienvenue sur <span class="text-indigo-400">Libheros</span>
-        </h1>
+  <div class="min-h-screen flex bg-[#0B0B0C] text-[#F5F1E8]">
 
-        <p class="text-slate-400 leading-relaxed">
-          La plateforme moderne pour gérer vos équipes, vos missions et vos aventures numériques.
+    <!-- Partie gauche -->
+    <div class="hidden md:flex w-1/2 items-center justify-center bg-gradient-to-br from-[#18181B] via-[#0F0F11] to-[#09090A] p-12 border-r border-[#2A2A2E]">
+      <div class="max-w-md">
+        <div class="mb-8">
+  <video
+  :src="logoVideo"
+  autoplay
+  muted
+  loop
+  playsinline
+  class="w-200 h-auto mb- opacity-95 object-contain"
+></video>
+</div>
+
+<h1 class="text-6xl font-bold mb-6 tracking-tight">
+  Bienvenue sur <span class="text-[#E7DDD0]">Libheros !</span>
+</h1>
+
+        <p class="text-[#B9B3A8] leading-relaxed text-lg">
+          Une interface élégante pour gérer vos tâches, vos listes et votre organisation au quotidien.
         </p>
       </div>
     </div>
 
+    <!-- Partie droite -->
     <div class="flex w-full md:w-1/2 items-center justify-center">
       <div class="w-full max-w-md px-8">
-        <h2 class="text-3xl font-bold mb-2">Connexion</h2>
-        <p class="text-slate-400 mb-8">Accédez à votre espace sécurisé</p>
+
+        <h2 class="text-6xl font-bold mb-2 tracking-tight">
+          Connexion
+        </h2>
+
+        <p class="text-[#B9B3A8] mb-8 text-base">
+          Accédez à votre espace sécurisé
+        </p>
 
         <form class="space-y-6" @submit.prevent="handleLogin">
           <div>
-            <label class="block text-sm mb-2">Email</label>
+            <label class="block text-sm mb-2 text-[#E7DDD0]">Email</label>
             <input
               v-model="email"
               type="email"
               placeholder="votre@email.com"
-              class="w-full px-4 py-3 rounded-lg bg-slate-900 border border-slate-700 focus:outline-none focus:border-indigo-500"
+              class="w-full px-4 py-3 rounded-2xl bg-[#141416] border border-[#2A2A2E] text-[#F5F1E8] placeholder:text-[#7D786F] focus:outline-none focus:border-[#E7DDD0] transition"
             />
           </div>
 
           <div>
-            <label class="block text-sm mb-2">Mot de passe</label>
+            <label class="block text-sm mb-2 text-[#E7DDD0]">Mot de passe</label>
             <input
               v-model="password"
               type="password"
               placeholder="••••••••"
-              class="w-full px-4 py-3 rounded-lg bg-slate-900 border border-slate-700 focus:outline-none focus:border-indigo-500"
+              class="w-full px-4 py-3 rounded-2xl bg-[#141416] border border-[#2A2A2E] text-[#F5F1E8] placeholder:text-[#7D786F] focus:outline-none focus:border-[#E7DDD0] transition"
             />
           </div>
 
@@ -79,15 +100,15 @@ const handleLogin = async () => {
           <button
             type="submit"
             :disabled="loading"
-            class="w-full py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 transition font-semibold disabled:opacity-50"
+            class="w-full py-3 rounded-2xl bg-[#E7DDD0] text-[#111112] hover:bg-[#F5F1E8] transition font-semibold disabled:opacity-50"
           >
             {{ loading ? 'Connexion...' : 'Se connecter' }}
           </button>
         </form>
 
-        <p class="text-sm text-slate-400 mt-6">
+        <p class="text-sm text-[#B9B3A8] mt-6">
           Pas encore de compte ?
-          <router-link to="/register" class="text-indigo-400 hover:text-indigo-300 ml-1">
+          <router-link to="/register" class="text-[#E7DDD0] hover:text-white ml-1">
             Créer un compte
           </router-link>
         </p>

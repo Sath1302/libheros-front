@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { authGuard } from '../guards/authGuard'
 
 import Login from '../views/Login.vue'
 import Register from '../views/Register.vue'
@@ -20,6 +21,7 @@ const routes = [
   {
     path: '/dashboard',
     component: Dashboard,
+    beforeEnter: authGuard,
   },
 ]
 
