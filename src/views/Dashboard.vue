@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
 import logoVideo from '../assets/logo.mp4'
@@ -27,6 +27,10 @@ const editTask = ref({
   longDescription: '',
   dueDate: '',
 })
+
+const totalTasks = computed(() => tasks.value.length)
+const completedTasks = computed(() => tasks.value.filter((task) => task.isCompleted).length)
+const pendingTasks = computed(() => tasks.value.filter((task) => !task.isCompleted).length)
 
 const handleLogout = () => {
   localStorage.removeItem('token')
@@ -297,6 +301,26 @@ onMounted(() => {
           </button>
         </div>
       </header>
+
+      <section class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+        <div class="rounded-3xl bg-[#141416]/90 border border-[#2A2A2E] p-6 shadow-xl">
+          <p class="text-sm uppercase tracking-[0.18em] text-[#8E877D] mb-3">Total</p>
+          <h3 class="text-4xl font-bold text-[#F5F1E8]">{{ totalTasks }}</h3>
+          <p class="text-[#B9B3A8] mt-2">Nombre total de tâches</p>
+        </div>
+
+        <div class="rounded-3xl bg-[#141416]/90 border border-[#2A2A2E] p-6 shadow-xl">
+          <p class="text-sm uppercase tracking-[0.18em] text-[#8E877D] mb-3">Terminées</p>
+          <h3 class="text-4xl font-bold text-[#B7E4C7]">{{ completedTasks }}</h3>
+          <p class="text-[#B9B3A8] mt-2">Tâches déjà complétées</p>
+        </div>
+
+        <div class="rounded-3xl bg-[#141416]/90 border border-[#2A2A2E] p-6 shadow-xl">
+          <p class="text-sm uppercase tracking-[0.18em] text-[#8E877D] mb-3">En cours</p>
+          <h3 class="text-4xl font-bold text-[#E7DDD0]">{{ pendingTasks }}</h3>
+          <p class="text-[#B9B3A8] mt-2">Tâches encore à faire</p>
+        </div>
+      </section>
 
       <div v-if="loading" class="text-[#B9B3A8] text-lg">
         Chargement des tâches...
