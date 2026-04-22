@@ -14,6 +14,8 @@ const errorMessage = ref('')
 
 const showCreateTaskModal = ref(false)
 const showEditTaskModal = ref(false)
+const showCreateListModal = ref(false)
+const showCompletedTasks = ref(false)
 const editingTaskId = ref(null)
 
 const newTask = ref({
@@ -28,9 +30,20 @@ const editTask = ref({
   dueDate: '',
 })
 
+const newList = ref({
+  name: '',
+})
+
+const activeTasks = computed(() => tasks.value.filter((task) => !task.isCompleted))
+const completedTasksList = computed(() => tasks.value.filter((task) => task.isCompleted))
+
 const totalTasks = computed(() => tasks.value.length)
-const completedTasks = computed(() => tasks.value.filter((task) => task.isCompleted).length)
-const pendingTasks = computed(() => tasks.value.filter((task) => !task.isCompleted).length)
+const completedTasks = computed(() => completedTasksList.value.length)
+const pendingTasks = computed(() => activeTasks.value.length)
+
+const selectedListName = computed(() => {
+  return taskLists.value.find((list) => list.id === selectedTaskListId.value)?.name || 'Mes tâches'
+})
 
 const handleLogout = () => {
   localStorage.removeItem('token')
@@ -52,12 +65,23 @@ const fetchTaskLists = async () => {
 
   taskLists.value = response.data
 
-  if (taskLists.value.length > 0 && !selectedTaskListId.value) {
-    selectedTaskListId.value = taskLists.value[0].id
+  if (taskLists.value.length > 0) {
+    const stillExists = taskLists.value.some((list) => list.id === selectedTaskListId.value)
+
+    if (!selectedTaskListId.value || !stillExists) {
+      selectedTaskListId.value = taskLists.value[0].id
+    }
+  } else {
+    selectedTaskListId.value = null
   }
 }
 
 const fetchTasksByList = async (taskListId) => {
+  if (!taskListId) {
+    tasks.value = []
+    return
+  }
+
   const response = await axios.get(
     `http://localhost:3000/tasks/task-list/${taskListId}`,
     {
@@ -86,6 +110,11 @@ const selectTaskList = async (taskListId) => {
 const createTask = async () => {
   errorMessage.value = ''
 
+  if (!selectedTaskListId.value) {
+    errorMessage.value = "Créez d'abord une liste avant d'ajouter une tâche."
+    return
+  }
+
   try {
     await axios.post(
       'http://localhost:3000/tasks',
@@ -111,6 +140,39 @@ const createTask = async () => {
     await fetchTasksByList(selectedTaskListId.value)
   } catch (error) {
     errorMessage.value = 'Impossible de créer la tâche.'
+    console.error(error)
+  }
+}
+
+const createList = async () => {
+  errorMessage.value = ''
+
+  if (!newList.value.name.trim()) {
+    errorMessage.value = 'Le nom de la liste est requis.'
+    return
+  }
+
+  try {
+    await axios.post(
+      'http://localhost:3000/task-lists',
+      {
+        name: newList.value.name,
+      },
+      {
+        headers: getAuthHeaders(),
+      }
+    )
+
+    showCreateListModal.value = false
+    newList.value = { name: '' }
+
+    await fetchTaskLists()
+
+    if (selectedTaskListId.value) {
+      await fetchTasksByList(selectedTaskListId.value)
+    }
+  } catch (error) {
+    errorMessage.value = 'Impossible de créer la liste.'
     console.error(error)
   }
 }
@@ -242,8 +304,18 @@ onMounted(() => {
       </div>
 
       <nav class="space-y-4">
-        <div class="text-sm uppercase tracking-[0.2em] text-[#8E877D] mb-2">
-          Mes listes
+        <div class="flex items-center justify-between mb-2">
+          <div class="text-sm uppercase tracking-[0.2em] text-[#8E877D]">
+            Mes listes
+          </div>
+
+          <button
+            @click="showCreateListModal = true"
+            class="h-9 w-9 rounded-xl bg-[#E7DDD0] text-[#111112] font-bold hover:opacity-90 transition"
+            title="Créer une liste"
+          >
+            +
+          </button>
         </div>
 
         <button
@@ -259,6 +331,13 @@ onMounted(() => {
         >
           {{ list.name }}
         </button>
+
+        <div
+          v-if="taskLists.length === 0"
+          class="rounded-2xl bg-[#1A1A1D] border border-dashed border-[#2A2A2E] p-4 text-sm text-[#8E877D]"
+        >
+          Aucune liste pour le moment. Créez-en une pour commencer.
+        </div>
 
         <button class="w-full text-left px-5 py-4 rounded-2xl bg-[#1A1A1D] border border-[#2A2A2E] text-[#D4CEC3] transition hover:bg-[#202024] hover:text-white text-base">
           Profil
@@ -284,7 +363,7 @@ onMounted(() => {
           </div>
 
           <h2 class="text-5xl font-bold tracking-tight leading-tight">
-            {{ taskLists.find((list) => list.id === selectedTaskListId)?.name || 'Mes tâches' }}
+            {{ selectedListName }}
           </h2>
 
           <p class="text-[#B9B3A8] mt-3 text-lg">
@@ -295,7 +374,8 @@ onMounted(() => {
         <div class="flex justify-end">
           <button
             @click="showCreateTaskModal = true"
-            class="px-6 py-3 rounded-xl bg-[#E7DDD0] text-black font-semibold hover:opacity-90 transition"
+            :disabled="!selectedTaskListId"
+            class="px-6 py-3 rounded-xl bg-[#E7DDD0] text-black font-semibold hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
             + Nouvelle tâche
           </button>
@@ -330,76 +410,149 @@ onMounted(() => {
         {{ errorMessage }}
       </div>
 
-      <div v-else-if="tasks.length === 0" class="text-[#B9B3A8] text-lg">
-        Aucune tâche trouvée.
+      <div v-else-if="!selectedTaskListId" class="text-[#B9B3A8] text-lg">
+        Créez ou sélectionnez une liste pour commencer.
       </div>
 
-      <section v-else class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
-        <div
-          v-for="task in tasks"
-          :key="task.id"
-          class="rounded-3xl bg-[#141416]/90 backdrop-blur-xl border border-[#2A2A2E] p-8 shadow-xl transition hover:-translate-y-1 hover:border-[#3A3A40]"
-        >
-          <div class="mb-5 flex items-center justify-between gap-4">
-            <h3
-              class="text-xl font-semibold flex-1"
-              :class="task.isCompleted ? 'text-[#8E877D] line-through' : 'text-[#F5F1E8]'"
-            >
-              {{ task.shortDescription }}
-            </h3>
+      <template v-else>
+        <div v-if="activeTasks.length === 0" class="text-[#B9B3A8] text-lg mb-10">
+          Aucune tâche en cours.
+        </div>
 
-            <div class="flex items-center gap-3">
-              <button
-                @click="toggleTaskStatus(task)"
-                class="h-12 w-12 rounded-2xl flex items-center justify-center text-lg transition hover:scale-105"
-                :class="task.isCompleted ? 'bg-[#1F3328] text-[#B7E4C7]' : 'bg-[#2A241C] text-[#E7DDD0]'"
-                title="Changer le statut"
-              >
-                {{ task.isCompleted ? '✓' : '•' }}
-              </button>
+        <section v-else class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8 mb-10">
+          <div
+            v-for="task in activeTasks"
+            :key="task.id"
+            class="rounded-3xl bg-[#141416]/90 backdrop-blur-xl border border-[#2A2A2E] p-8 shadow-xl transition hover:-translate-y-1 hover:border-[#3A3A40]"
+          >
+            <div class="mb-5 flex items-center justify-between gap-4">
+              <h3 class="text-xl font-semibold flex-1 text-[#F5F1E8]">
+                {{ task.shortDescription }}
+              </h3>
 
-              <button
-                @click="openEditModal(task)"
-                class="h-12 w-12 rounded-2xl flex items-center justify-center text-lg bg-[#1E2330] text-[#D7E3FF] hover:bg-[#293246] transition hover:scale-105"
-                title="Modifier la tâche"
-              >
-                ✏️
-              </button>
+              <div class="flex items-center gap-3">
+                <button
+                  @click="toggleTaskStatus(task)"
+                  class="h-12 w-12 rounded-2xl flex items-center justify-center text-lg transition hover:scale-105 bg-[#2A241C] text-[#E7DDD0]"
+                  title="Changer le statut"
+                >
+                  •
+                </button>
 
-              <button
-                @click="deleteTask(task.id)"
-                class="h-12 w-12 rounded-2xl flex items-center justify-center text-lg bg-[#2B1717] text-[#F5C2C2] hover:bg-[#3A1E1E] transition hover:scale-105"
-                title="Supprimer la tâche"
-              >
-                🗑
-              </button>
+                <button
+                  @click="openEditModal(task)"
+                  class="h-12 w-12 rounded-2xl flex items-center justify-center text-lg bg-[#1E2330] text-[#D7E3FF] hover:bg-[#293246] transition hover:scale-105"
+                  title="Modifier la tâche"
+                >
+                  ✏️
+                </button>
+
+                <button
+                  @click="deleteTask(task.id)"
+                  class="h-12 w-12 rounded-2xl flex items-center justify-center text-lg bg-[#2B1717] text-[#F5C2C2] hover:bg-[#3A1E1E] transition hover:scale-105"
+                  title="Supprimer la tâche"
+                >
+                  🗑
+                </button>
+              </div>
+            </div>
+
+            <p class="text-base mb-4 text-[#B9B3A8]">
+              {{ task.longDescription || 'Pas de description.' }}
+            </p>
+
+            <div class="text-sm text-[#8E877D] space-y-2">
+              <p>
+                Statut :
+                <span class="text-[#DCCFC1]">En cours</span>
+              </p>
+
+              <p v-if="task.dueDate">
+                Échéance :
+                <span class="text-[#DCCFC1]">
+                  {{ new Date(task.dueDate).toLocaleDateString() }}
+                </span>
+              </p>
             </div>
           </div>
+        </section>
 
-          <p
-            class="text-base mb-4"
-            :class="task.isCompleted ? 'text-[#7B756C]' : 'text-[#B9B3A8]'"
+        <section class="mt-6">
+          <button
+            @click="showCompletedTasks = !showCompletedTasks"
+            class="mb-6 inline-flex items-center gap-3 px-5 py-3 rounded-2xl bg-[#141416]/90 border border-[#2A2A2E] text-[#F5F1E8] hover:border-[#3A3A40] transition"
           >
-            {{ task.longDescription || 'Pas de description.' }}
-          </p>
+            <span class="text-lg">{{ showCompletedTasks ? '▾' : '▸' }}</span>
+            <span class="font-semibold">
+              Mes tâches terminées ({{ completedTasksList.length }})
+            </span>
+          </button>
 
-          <div class="text-sm text-[#8E877D] space-y-2">
-            <p>
-              Statut :
-              <span class="text-[#DCCFC1]">
-                {{ task.isCompleted ? 'Terminée' : 'En cours' }}
-              </span>
-            </p>
+          <div v-if="showCompletedTasks">
+            <div v-if="completedTasksList.length === 0" class="text-[#8E877D] text-lg">
+              Aucune tâche terminée.
+            </div>
 
-            <p v-if="task.dueDate">
-              Échéance :
-              <span class="text-[#DCCFC1]">
-                {{ new Date(task.dueDate).toLocaleDateString() }}
-              </span>
-            </p>
+            <div v-else class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
+              <div
+                v-for="task in completedTasksList"
+                :key="task.id"
+                class="rounded-3xl bg-[#141416]/70 backdrop-blur-xl border border-[#263128] p-8 shadow-xl opacity-95"
+              >
+                <div class="mb-5 flex items-center justify-between gap-4">
+                  <h3 class="text-xl font-semibold flex-1 text-[#8E877D] line-through">
+                    {{ task.shortDescription }}
+                  </h3>
+
+                  <div class="flex items-center gap-3">
+                    <button
+                      @click="toggleTaskStatus(task)"
+                      class="h-12 w-12 rounded-2xl flex items-center justify-center text-lg transition hover:scale-105 bg-[#1F3328] text-[#B7E4C7]"
+                      title="Remettre en cours"
+                    >
+                      ✓
+                    </button>
+
+                    <button
+                      @click="openEditModal(task)"
+                      class="h-12 w-12 rounded-2xl flex items-center justify-center text-lg bg-[#1E2330] text-[#D7E3FF] hover:bg-[#293246] transition hover:scale-105"
+                      title="Modifier la tâche"
+                    >
+                      ✏️
+                    </button>
+
+                    <button
+                      @click="deleteTask(task.id)"
+                      class="h-12 w-12 rounded-2xl flex items-center justify-center text-lg bg-[#2B1717] text-[#F5C2C2] hover:bg-[#3A1E1E] transition hover:scale-105"
+                      title="Supprimer la tâche"
+                    >
+                      🗑
+                    </button>
+                  </div>
+                </div>
+
+                <p class="text-base mb-4 text-[#7B756C]">
+                  {{ task.longDescription || 'Pas de description.' }}
+                </p>
+
+                <div class="text-sm text-[#8E877D] space-y-2">
+                  <p>
+                    Statut :
+                    <span class="text-[#B7E4C7]">Terminée</span>
+                  </p>
+
+                  <p v-if="task.dueDate">
+                    Échéance :
+                    <span class="text-[#DCCFC1]">
+                      {{ new Date(task.dueDate).toLocaleDateString() }}
+                    </span>
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      </template>
     </main>
 
     <div
@@ -483,6 +636,37 @@ onMounted(() => {
             class="px-4 py-2 rounded-lg bg-[#E7DDD0] text-black font-semibold hover:opacity-90 transition"
           >
             Enregistrer
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div
+      v-if="showCreateListModal"
+      class="fixed inset-0 bg-black/60 flex items-center justify-center z-50"
+    >
+      <div class="bg-[#111112] border border-[#2A2A2E] p-8 rounded-2xl w-[420px] space-y-4 shadow-2xl">
+        <h2 class="text-2xl font-bold">Créer une liste</h2>
+
+        <input
+          v-model="newList.name"
+          placeholder="Nom de la liste"
+          class="w-full p-3 rounded-lg bg-[#1A1A1D] border border-[#2A2A2E] text-[#F5F1E8] outline-none"
+        />
+
+        <div class="flex justify-end gap-3">
+          <button
+            @click="showCreateListModal = false"
+            class="px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 transition"
+          >
+            Annuler
+          </button>
+
+          <button
+            @click="createList"
+            class="px-4 py-2 rounded-lg bg-[#E7DDD0] text-black font-semibold hover:opacity-90 transition"
+          >
+            Créer
           </button>
         </div>
       </div>

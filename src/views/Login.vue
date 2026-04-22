@@ -35,36 +35,37 @@ const handleLogin = async () => {
 
 <template>
   <div class="min-h-screen flex bg-[#0B0B0C] text-[#F5F1E8]">
-
     <!-- Partie gauche -->
-    <div class="hidden md:flex w-1/2 items-center justify-center bg-gradient-to-br from-[#18181B] via-[#0F0F11] to-[#09090A] p-12 border-r border-[#2A2A2E]">
+    <div
+      class="hidden md:flex w-1/2 items-center justify-center bg-gradient-to-br from-[#18181B] via-[#0F0F11] to-[#09090A] p-12 border-r border-[#2A2A2E]"
+    >
       <div class="max-w-md">
         <div class="mb-8">
-  <video
-  :src="logoVideo"
-  autoplay
-  muted
-  loop
-  playsinline
-  class="w-200 h-auto mb- opacity-95 object-contain"
-></video>
-</div>
+          <video
+            :src="logoVideo"
+            autoplay
+            muted
+            loop
+            playsinline
+            class="w-72 h-auto object-contain opacity-95"
+          ></video>
+        </div>
 
-<h1 class="text-6xl font-bold mb-6 tracking-tight">
-  Bienvenue sur <span class="text-[#E7DDD0]">Libheros !</span>
-</h1>
+        <h1 class="text-6xl font-bold mb-6 tracking-tight">
+          Bienvenue sur <span class="text-[#E7DDD0]">Libheros !</span>
+        </h1>
 
         <p class="text-[#B9B3A8] leading-relaxed text-lg">
-          Une interface élégante pour gérer vos tâches, vos listes et votre organisation au quotidien.
+          Une interface élégante pour gérer vos tâches, vos listes et votre
+          organisation au quotidien.
         </p>
       </div>
     </div>
 
     <!-- Partie droite -->
-    <div class="flex w-full md:w-1/2 items-center justify-center">
-      <div class="w-full max-w-md px-8">
-
-        <h2 class="text-6xl font-bold mb-2 tracking-tight">
+    <div class="flex w-full md:w-1/2 items-center justify-center p-8">
+      <div class="w-full max-w-md">
+        <h2 class="text-5xl md:text-6xl font-bold mb-2 tracking-tight">
           Connexion
         </h2>
 
