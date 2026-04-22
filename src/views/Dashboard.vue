@@ -15,8 +15,11 @@ const errorMessage = ref('')
 const showCreateTaskModal = ref(false)
 const showEditTaskModal = ref(false)
 const showCreateListModal = ref(false)
+const showDeleteListModal = ref(false)
 const showCompletedTasks = ref(false)
 const editingTaskId = ref(null)
+const deletingListId = ref(null)
+const deletingListName = ref('')
 
 const newTask = ref({
   shortDescription: '',
@@ -177,6 +180,45 @@ const createList = async () => {
   }
 }
 
+const openDeleteListModal = (list) => {
+  deletingListId.value = list.id
+  deletingListName.value = list.name
+  showDeleteListModal.value = true
+}
+
+const deleteList = async () => {
+  if (!deletingListId.value) return
+
+  errorMessage.value = ''
+
+  try {
+    await axios.delete(`http://localhost:3000/task-lists/${deletingListId.value}`, {
+      headers: getAuthHeaders(),
+    })
+
+    showDeleteListModal.value = false
+
+    if (selectedTaskListId.value === deletingListId.value) {
+      selectedTaskListId.value = null
+      tasks.value = []
+    }
+
+    deletingListId.value = null
+    deletingListName.value = ''
+
+    await fetchTaskLists()
+
+    if (selectedTaskListId.value) {
+      await fetchTasksByList(selectedTaskListId.value)
+    } else {
+      tasks.value = []
+    }
+  } catch (error) {
+    errorMessage.value = 'Impossible de supprimer la liste.'
+    console.error(error)
+  }
+}
+
 const openEditModal = (task) => {
   editingTaskId.value = task.id
   editTask.value = {
@@ -300,7 +342,7 @@ onMounted(() => {
 
         <p class="text-[#B9B3A8] text-base mb-10">
           Tableau de bord
-        </p>
+        ></p>
       </div>
 
       <nav class="space-y-4">
@@ -318,19 +360,31 @@ onMounted(() => {
           </button>
         </div>
 
-        <button
+        <div
           v-for="list in taskLists"
           :key="list.id"
-          @click="selectTaskList(list.id)"
-          class="w-full text-left px-5 py-4 rounded-2xl border text-base transition"
-          :class="
-            selectedTaskListId === list.id
-              ? 'bg-[#E7DDD0] text-[#111112] font-semibold border-[#E7DDD0] shadow-lg'
-              : 'bg-[#1A1A1D] border-[#2A2A2E] text-[#D4CEC3] hover:bg-[#202024] hover:text-white'
-          "
+          class="flex items-center gap-2"
         >
-          {{ list.name }}
-        </button>
+          <button
+            @click="selectTaskList(list.id)"
+            class="flex-1 text-left px-5 py-4 rounded-2xl border text-base transition"
+            :class="
+              selectedTaskListId === list.id
+                ? 'bg-[#E7DDD0] text-[#111112] font-semibold border-[#E7DDD0] shadow-lg'
+                : 'bg-[#1A1A1D] border-[#2A2A2E] text-[#D4CEC3] hover:bg-[#202024] hover:text-white'
+            "
+          >
+            {{ list.name }}
+          </button>
+
+          <button
+            @click="openDeleteListModal(list)"
+            class="h-12 w-12 rounded-2xl bg-[#2B1717] text-[#F5C2C2] hover:bg-[#3A1E1E] transition"
+            title="Supprimer la liste"
+          >
+            🗑
+          </button>
+        </div>
 
         <div
           v-if="taskLists.length === 0"
@@ -667,6 +721,40 @@ onMounted(() => {
             class="px-4 py-2 rounded-lg bg-[#E7DDD0] text-black font-semibold hover:opacity-90 transition"
           >
             Créer
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div
+      v-if="showDeleteListModal"
+      class="fixed inset-0 bg-black/60 flex items-center justify-center z-50"
+    >
+      <div class="bg-[#111112] border border-[#2A2A2E] p-8 rounded-2xl w-[460px] space-y-4 shadow-2xl">
+        <h2 class="text-2xl font-bold text-[#F5F1E8]">Supprimer la liste</h2>
+
+        <p class="text-[#B9B3A8] leading-relaxed">
+          Voulez-vous vraiment supprimer la liste
+          <span class="text-[#F5F1E8] font-semibold">"{{ deletingListName }}"</span> ?
+        </p>
+
+        <p class="text-red-400 text-sm">
+          Toutes les tâches associées à cette liste seront également supprimées.
+        </p>
+
+        <div class="flex justify-end gap-3 pt-2">
+          <button
+            @click="showDeleteListModal = false"
+            class="px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 transition"
+          >
+            Annuler
+          </button>
+
+          <button
+            @click="deleteList"
+            class="px-4 py-2 rounded-lg bg-[#8B1E1E] text-white font-semibold hover:bg-[#A32424] transition"
+          >
+            Supprimer
           </button>
         </div>
       </div>
