@@ -6,6 +6,8 @@ import logoVideo from '../assets/logo.mp4'
 
 const router = useRouter()
 
+const isSidebarCollapsed = ref(false)
+
 const taskLists = ref([])
 const selectedTaskListId = ref(null)
 const tasks = ref([])
@@ -16,12 +18,15 @@ const showCreateTaskModal = ref(false)
 const showEditTaskModal = ref(false)
 const showCreateListModal = ref(false)
 const showDeleteListModal = ref(false)
+const showDeleteTaskModal = ref(false)
 const showCompletedTasks = ref(false)
 const showTaskDetailsSidebar = ref(false)
 
 const editingTaskId = ref(null)
 const deletingListId = ref(null)
 const deletingListName = ref('')
+const deletingTaskId = ref(null)
+const deletingTaskName = ref('')
 const selectedTask = ref(null)
 
 const newTask = ref({
@@ -310,20 +315,28 @@ const toggleTaskStatus = async (task) => {
   }
 }
 
-const deleteTask = async (taskId) => {
-  const confirmed = window.confirm('Voulez-vous vraiment supprimer cette tâche ?')
+const openDeleteTaskModal = (task) => {
+  deletingTaskId.value = task.id
+  deletingTaskName.value = task.shortDescription
+  showDeleteTaskModal.value = true
+}
 
-  if (!confirmed) return
+const deleteTask = async () => {
+  if (!deletingTaskId.value) return
 
   try {
-    await axios.delete(`http://localhost:3000/tasks/${taskId}`, {
+    await axios.delete(`http://localhost:3000/tasks/${deletingTaskId.value}`, {
       headers: getAuthHeaders(),
     })
 
-    if (selectedTask.value?.id === taskId) {
+    if (selectedTask.value?.id === deletingTaskId.value) {
       selectedTask.value = null
       showTaskDetailsSidebar.value = false
     }
+
+    showDeleteTaskModal.value = false
+    deletingTaskId.value = null
+    deletingTaskName.value = ''
 
     await fetchTasksByList(selectedTaskListId.value)
   } catch (error) {
@@ -364,25 +377,45 @@ onMounted(() => {
       <div class="absolute bottom-0 right-0 h-96 w-96 rounded-full bg-[#E7DDD0]/5 blur-3xl"></div>
     </div>
 
-    <aside class="w-80 bg-[#121214]/85 backdrop-blur-xl border-r border-[#2A2A2E] p-8 flex flex-col shadow-2xl">
+    <aside
+      class="bg-[#121214]/85 backdrop-blur-xl border-r border-[#2A2A2E] p-6 flex flex-col shadow-2xl transition-all duration-300"
+      :class="isSidebarCollapsed ? 'w-28' : 'w-80'"
+    >
       <div>
-        <video
-          :src="logoVideo"
-          autoplay
-          muted
-          loop
-          playsinline
-          class="w-32 h-auto mb-6 opacity-95 object-contain"
-        ></video>
+        <div class="flex items-center justify-between mb-6">
+          <video
+            :src="logoVideo"
+            autoplay
+            muted
+            loop
+            playsinline
+            class="h-auto opacity-95 object-contain transition-all duration-300"
+            :class="isSidebarCollapsed ? 'w-12' : 'w-32'"
+          ></video>
 
-        <p class="text-[#B9B3A8] text-base mb-10">
+          <button
+            @click="isSidebarCollapsed = !isSidebarCollapsed"
+            class="h-10 w-10 rounded-xl bg-[#1A1A1D] border border-[#2A2A2E] text-[#F5F1E8] hover:bg-[#202024] transition shrink-0"
+            :title="isSidebarCollapsed ? 'Déplier la sidebar' : 'Replier la sidebar'"
+          >
+            {{ isSidebarCollapsed ? '›' : '‹' }}
+          </button>
+        </div>
+
+        <p
+          v-if="!isSidebarCollapsed"
+          class="text-[#B9B3A8] text-base mb-10"
+        >
           Tableau de bord >
         </p>
       </div>
 
       <nav class="space-y-4">
         <div class="flex items-center justify-between mb-2">
-          <div class="text-sm uppercase tracking-[0.2em] text-[#8E877D]">
+          <div
+            v-if="!isSidebarCollapsed"
+            class="text-sm uppercase tracking-[0.2em] text-[#8E877D]"
+          >
             Mes listes
           </div>
 
@@ -402,17 +435,21 @@ onMounted(() => {
         >
           <button
             @click="selectTaskList(list.id)"
-            class="flex-1 text-left px-5 py-4 rounded-2xl border text-base transition"
-            :class="
+            class="flex-1 text-left rounded-2xl border text-base transition"
+            :class="[
               selectedTaskListId === list.id
                 ? 'bg-[#E7DDD0] text-[#111112] font-semibold border-[#E7DDD0] shadow-lg'
-                : 'bg-[#1A1A1D] border-[#2A2A2E] text-[#D4CEC3] hover:bg-[#202024] hover:text-white'
-            "
+                : 'bg-[#1A1A1D] border-[#2A2A2E] text-[#D4CEC3] hover:bg-[#202024] hover:text-white',
+              isSidebarCollapsed ? 'px-3 py-4 text-center text-sm' : 'px-5 py-4'
+            ]"
+            :title="list.name"
           >
-            {{ list.name }}
+            <span v-if="!isSidebarCollapsed">{{ list.name }}</span>
+            <span v-else>{{ list.name.charAt(0).toUpperCase() }}</span>
           </button>
 
           <button
+            v-if="!isSidebarCollapsed"
             @click="openDeleteListModal(list)"
             class="h-12 w-12 rounded-2xl bg-[#2B1717] text-[#F5C2C2] hover:bg-[#3A1E1E] transition"
             title="Supprimer la liste"
@@ -422,23 +459,31 @@ onMounted(() => {
         </div>
 
         <div
-          v-if="taskLists.length === 0"
+          v-if="taskLists.length === 0 && !isSidebarCollapsed"
           class="rounded-2xl bg-[#1A1A1D] border border-dashed border-[#2A2A2E] p-4 text-sm text-[#8E877D]"
         >
           Aucune liste pour le moment. Créez-en une pour commencer.
         </div>
 
-        <button class="w-full text-left px-5 py-4 rounded-2xl bg-[#1A1A1D] border border-[#2A2A2E] text-[#D4CEC3] transition hover:bg-[#202024] hover:text-white text-base">
-          Profil
+        <button
+          class="w-full text-left rounded-2xl bg-[#1A1A1D] border border-[#2A2A2E] text-[#D4CEC3] transition hover:bg-[#202024] hover:text-white text-base"
+          :class="isSidebarCollapsed ? 'px-3 py-4 text-center text-sm' : 'px-5 py-4'"
+          title="Profil"
+        >
+          <span v-if="!isSidebarCollapsed">Profil</span>
+          <span v-else>P</span>
         </button>
       </nav>
 
       <div class="mt-auto">
         <button
           @click="handleLogout"
-          class="w-full py-4 rounded-2xl bg-[#2B1717] text-[#F5F1E8] hover:bg-[#3A1E1E] transition font-medium text-base border border-[#4A2626]"
+          class="w-full rounded-2xl bg-[#2B1717] text-[#F5F1E8] hover:bg-[#3A1E1E] transition font-medium text-base border border-[#4A2626]"
+          :class="isSidebarCollapsed ? 'px-3 py-4 text-sm' : 'py-4'"
+          :title="isSidebarCollapsed ? 'Déconnexion' : ''"
         >
-          Déconnexion
+          <span v-if="!isSidebarCollapsed">Déconnexion</span>
+          <span v-else>⎋</span>
         </button>
       </div>
     </aside>
@@ -538,7 +583,7 @@ onMounted(() => {
                 </button>
 
                 <button
-                  @click.stop="deleteTask(task.id)"
+                  @click.stop="openDeleteTaskModal(task)"
                   class="h-12 w-12 rounded-2xl flex items-center justify-center text-lg bg-[#2B1717] text-[#F5C2C2] hover:bg-[#3A1E1E] transition hover:scale-105"
                   title="Supprimer la tâche"
                 >
@@ -613,7 +658,7 @@ onMounted(() => {
                     </button>
 
                     <button
-                      @click.stop="deleteTask(task.id)"
+                      @click.stop="openDeleteTaskModal(task)"
                       class="h-12 w-12 rounded-2xl flex items-center justify-center text-lg bg-[#2B1717] text-[#F5C2C2] hover:bg-[#3A1E1E] transition hover:scale-105"
                       title="Supprimer la tâche"
                     >
@@ -732,7 +777,7 @@ onMounted(() => {
         </div>
 
         <button
-          @click="deleteTask(selectedTask.id)"
+          @click="openDeleteTaskModal(selectedTask)"
           class="w-full py-3 rounded-2xl bg-[#8B1E1E] text-white font-semibold hover:bg-[#A32424] transition"
         >
           Supprimer la tâche
@@ -883,6 +928,40 @@ onMounted(() => {
 
           <button
             @click="deleteList"
+            class="px-4 py-2 rounded-lg bg-[#8B1E1E] text-white font-semibold hover:bg-[#A32424] transition"
+          >
+            Supprimer
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div
+      v-if="showDeleteTaskModal"
+      class="fixed inset-0 bg-black/60 flex items-center justify-center z-50"
+    >
+      <div class="bg-[#111112] border border-[#2A2A2E] p-8 rounded-2xl w-[460px] space-y-4 shadow-2xl">
+        <h2 class="text-2xl font-bold text-[#F5F1E8]">Supprimer la tâche</h2>
+
+        <p class="text-[#B9B3A8] leading-relaxed">
+          Voulez-vous vraiment supprimer la tâche
+          <span class="text-[#F5F1E8] font-semibold">"{{ deletingTaskName }}"</span> ?
+        </p>
+
+        <p class="text-red-400 text-sm">
+          Cette action est définitive.
+        </p>
+
+        <div class="flex justify-end gap-3 pt-2">
+          <button
+            @click="showDeleteTaskModal = false"
+            class="px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 transition"
+          >
+            Annuler
+          </button>
+
+          <button
+            @click="deleteTask"
             class="px-4 py-2 rounded-lg bg-[#8B1E1E] text-white font-semibold hover:bg-[#A32424] transition"
           >
             Supprimer
