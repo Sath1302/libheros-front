@@ -17,9 +17,12 @@ const showEditTaskModal = ref(false)
 const showCreateListModal = ref(false)
 const showDeleteListModal = ref(false)
 const showCompletedTasks = ref(false)
+const showTaskDetailsSidebar = ref(false)
+
 const editingTaskId = ref(null)
 const deletingListId = ref(null)
 const deletingListName = ref('')
+const selectedTask = ref(null)
 
 const newTask = ref({
   shortDescription: '',
@@ -82,6 +85,8 @@ const fetchTaskLists = async () => {
 const fetchTasksByList = async (taskListId) => {
   if (!taskListId) {
     tasks.value = []
+    selectedTask.value = null
+    showTaskDetailsSidebar.value = false
     return
   }
 
@@ -93,12 +98,25 @@ const fetchTasksByList = async (taskListId) => {
   )
 
   tasks.value = response.data
+
+  if (selectedTask.value) {
+    const updatedSelectedTask = tasks.value.find((task) => task.id === selectedTask.value.id)
+
+    if (updatedSelectedTask) {
+      selectedTask.value = updatedSelectedTask
+    } else {
+      selectedTask.value = null
+      showTaskDetailsSidebar.value = false
+    }
+  }
 }
 
 const selectTaskList = async (taskListId) => {
   selectedTaskListId.value = taskListId
   loading.value = true
   errorMessage.value = ''
+  selectedTask.value = null
+  showTaskDetailsSidebar.value = false
 
   try {
     await fetchTasksByList(taskListId)
@@ -108,6 +126,16 @@ const selectTaskList = async (taskListId) => {
   } finally {
     loading.value = false
   }
+}
+
+const openTaskDetails = (task) => {
+  selectedTask.value = task
+  showTaskDetailsSidebar.value = true
+}
+
+const closeTaskDetails = () => {
+  showTaskDetailsSidebar.value = false
+  selectedTask.value = null
 }
 
 const createTask = async () => {
@@ -201,6 +229,8 @@ const deleteList = async () => {
     if (selectedTaskListId.value === deletingListId.value) {
       selectedTaskListId.value = null
       tasks.value = []
+      selectedTask.value = null
+      showTaskDetailsSidebar.value = false
     }
 
     deletingListId.value = null
@@ -290,6 +320,11 @@ const deleteTask = async (taskId) => {
       headers: getAuthHeaders(),
     })
 
+    if (selectedTask.value?.id === taskId) {
+      selectedTask.value = null
+      showTaskDetailsSidebar.value = false
+    }
+
     await fetchTasksByList(selectedTaskListId.value)
   } catch (error) {
     errorMessage.value = 'Impossible de supprimer la tâche.'
@@ -341,8 +376,8 @@ onMounted(() => {
         ></video>
 
         <p class="text-[#B9B3A8] text-base mb-10">
-          Tableau de bord
-        ></p>
+          Tableau de bord >
+        </p>
       </div>
 
       <nav class="space-y-4">
@@ -408,7 +443,7 @@ onMounted(() => {
       </div>
     </aside>
 
-    <main class="flex-1 p-10">
+    <main class="flex-1 p-10 transition-all duration-300" :class="showTaskDetailsSidebar ? 'mr-[420px]' : ''">
       <header class="flex flex-col md:flex-row md:items-start md:justify-between gap-6 mb-10">
         <div>
           <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#1A1A1D] border border-[#2A2A2E] text-[#D4CEC3] text-sm mb-5">
@@ -477,7 +512,8 @@ onMounted(() => {
           <div
             v-for="task in activeTasks"
             :key="task.id"
-            class="rounded-3xl bg-[#141416]/90 backdrop-blur-xl border border-[#2A2A2E] p-8 shadow-xl transition hover:-translate-y-1 hover:border-[#3A3A40]"
+            @click="openTaskDetails(task)"
+            class="cursor-pointer rounded-3xl bg-[#141416]/90 backdrop-blur-xl border border-[#2A2A2E] p-8 shadow-xl transition hover:-translate-y-1 hover:border-[#3A3A40]"
           >
             <div class="mb-5 flex items-center justify-between gap-4">
               <h3 class="text-xl font-semibold flex-1 text-[#F5F1E8]">
@@ -486,7 +522,7 @@ onMounted(() => {
 
               <div class="flex items-center gap-3">
                 <button
-                  @click="toggleTaskStatus(task)"
+                  @click.stop="toggleTaskStatus(task)"
                   class="h-12 w-12 rounded-2xl flex items-center justify-center text-lg transition hover:scale-105 bg-[#2A241C] text-[#E7DDD0]"
                   title="Changer le statut"
                 >
@@ -494,7 +530,7 @@ onMounted(() => {
                 </button>
 
                 <button
-                  @click="openEditModal(task)"
+                  @click.stop="openEditModal(task)"
                   class="h-12 w-12 rounded-2xl flex items-center justify-center text-lg bg-[#1E2330] text-[#D7E3FF] hover:bg-[#293246] transition hover:scale-105"
                   title="Modifier la tâche"
                 >
@@ -502,7 +538,7 @@ onMounted(() => {
                 </button>
 
                 <button
-                  @click="deleteTask(task.id)"
+                  @click.stop="deleteTask(task.id)"
                   class="h-12 w-12 rounded-2xl flex items-center justify-center text-lg bg-[#2B1717] text-[#F5C2C2] hover:bg-[#3A1E1E] transition hover:scale-105"
                   title="Supprimer la tâche"
                 >
@@ -551,7 +587,8 @@ onMounted(() => {
               <div
                 v-for="task in completedTasksList"
                 :key="task.id"
-                class="rounded-3xl bg-[#141416]/70 backdrop-blur-xl border border-[#263128] p-8 shadow-xl opacity-95"
+                @click="openTaskDetails(task)"
+                class="cursor-pointer rounded-3xl bg-[#141416]/70 backdrop-blur-xl border border-[#263128] p-8 shadow-xl opacity-95"
               >
                 <div class="mb-5 flex items-center justify-between gap-4">
                   <h3 class="text-xl font-semibold flex-1 text-[#8E877D] line-through">
@@ -560,7 +597,7 @@ onMounted(() => {
 
                   <div class="flex items-center gap-3">
                     <button
-                      @click="toggleTaskStatus(task)"
+                      @click.stop="toggleTaskStatus(task)"
                       class="h-12 w-12 rounded-2xl flex items-center justify-center text-lg transition hover:scale-105 bg-[#1F3328] text-[#B7E4C7]"
                       title="Remettre en cours"
                     >
@@ -568,7 +605,7 @@ onMounted(() => {
                     </button>
 
                     <button
-                      @click="openEditModal(task)"
+                      @click.stop="openEditModal(task)"
                       class="h-12 w-12 rounded-2xl flex items-center justify-center text-lg bg-[#1E2330] text-[#D7E3FF] hover:bg-[#293246] transition hover:scale-105"
                       title="Modifier la tâche"
                     >
@@ -576,7 +613,7 @@ onMounted(() => {
                     </button>
 
                     <button
-                      @click="deleteTask(task.id)"
+                      @click.stop="deleteTask(task.id)"
                       class="h-12 w-12 rounded-2xl flex items-center justify-center text-lg bg-[#2B1717] text-[#F5C2C2] hover:bg-[#3A1E1E] transition hover:scale-105"
                       title="Supprimer la tâche"
                     >
@@ -608,6 +645,100 @@ onMounted(() => {
         </section>
       </template>
     </main>
+
+    <aside
+      v-if="showTaskDetailsSidebar && selectedTask"
+      class="fixed top-0 right-0 h-full w-[420px] bg-[#111112]/95 backdrop-blur-2xl border-l border-[#2A2A2E] shadow-2xl z-40 p-8 overflow-y-auto"
+    >
+      <div class="flex items-start justify-between gap-4 mb-8">
+        <div>
+          <p class="text-sm uppercase tracking-[0.18em] text-[#8E877D] mb-3">
+            Détail de la tâche
+          </p>
+          <h2
+            class="text-3xl font-bold leading-tight"
+            :class="selectedTask.isCompleted ? 'text-[#8E877D] line-through' : 'text-[#F5F1E8]'"
+          >
+            {{ selectedTask.shortDescription }}
+          </h2>
+        </div>
+
+        <button
+          @click="closeTaskDetails"
+          class="h-11 w-11 rounded-2xl bg-[#1A1A1D] border border-[#2A2A2E] text-[#F5F1E8] hover:bg-[#202024] transition"
+          title="Fermer"
+        >
+          ✕
+        </button>
+      </div>
+
+      <div class="space-y-6">
+        <div class="rounded-3xl bg-[#141416]/90 border border-[#2A2A2E] p-6">
+          <p class="text-sm uppercase tracking-[0.18em] text-[#8E877D] mb-3">Description</p>
+          <p class="text-[#D4CEC3] leading-7">
+            {{ selectedTask.longDescription || 'Pas de description.' }}
+          </p>
+        </div>
+
+        <div class="rounded-3xl bg-[#141416]/90 border border-[#2A2A2E] p-6 space-y-4">
+          <div>
+            <p class="text-sm uppercase tracking-[0.18em] text-[#8E877D] mb-2">Statut</p>
+            <p :class="selectedTask.isCompleted ? 'text-[#B7E4C7]' : 'text-[#E7DDD0]'">
+              {{ selectedTask.isCompleted ? 'Terminée' : 'En cours' }}
+            </p>
+          </div>
+
+          <div v-if="selectedTask.dueDate">
+            <p class="text-sm uppercase tracking-[0.18em] text-[#8E877D] mb-2">Date d’échéance</p>
+            <p class="text-[#D4CEC3]">
+              {{ new Date(selectedTask.dueDate).toLocaleDateString() }}
+            </p>
+          </div>
+
+          <div v-if="selectedTask.createdAt">
+            <p class="text-sm uppercase tracking-[0.18em] text-[#8E877D] mb-2">Date de création</p>
+            <p class="text-[#D4CEC3]">
+              {{ new Date(selectedTask.createdAt).toLocaleDateString() }}
+            </p>
+          </div>
+
+          <div v-if="selectedTask.taskList?.name">
+            <p class="text-sm uppercase tracking-[0.18em] text-[#8E877D] mb-2">Liste</p>
+            <p class="text-[#D4CEC3]">
+              {{ selectedTask.taskList.name }}
+            </p>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <button
+            @click="toggleTaskStatus(selectedTask)"
+            class="py-3 rounded-2xl font-semibold transition"
+            :class="
+              selectedTask.isCompleted
+                ? 'bg-[#1F3328] text-[#B7E4C7] hover:opacity-90'
+                : 'bg-[#2A241C] text-[#E7DDD0] hover:opacity-90'
+            "
+          >
+            {{ selectedTask.isCompleted ? 'Remettre en cours' : 'Marquer terminée' }}
+          </button>
+
+          <button
+            @click="openEditModal(selectedTask)"
+            class="py-3 rounded-2xl bg-[#1E2330] text-[#D7E3FF] font-semibold hover:opacity-90 transition"
+          >
+            Modifier
+          </button>
+        </div>
+
+        <button
+          @click="deleteTask(selectedTask.id)"
+          class="w-full py-3 rounded-2xl bg-[#8B1E1E] text-white font-semibold hover:bg-[#A32424] transition"
+        >
+          Supprimer la tâche
+        </button>
+      </div>
+    </aside>
 
     <div
       v-if="showCreateTaskModal"
