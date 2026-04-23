@@ -1,5 +1,34 @@
-# Vue 3 + Vite
+# Libheros – Frontend
 
-This template should help get you started developing with Vue 3 in Vite. The template uses Vue 3 `<script setup>` SFCs, check out the [script setup docs](https://v3.vuejs.org/api/sfc-script-setup.html#sfc-script-setup) to learn more.
+Meme chose coté front , ce repository contient le frontend du test technique Libheros réalisé avec Vue 3 et Vite.
 
-Learn more about IDE Support for Vue in the [Vue Docs Scaling up Guide](https://vuejs.org/guide/scaling-up/tooling.html#ide-support).
+L’interface permet de gérer les listes de tâches et les tâches associées après authentification.
+
+## Installation
+
+Cloner le repository :
+
+git clone https://github.com/Sath1302/libheros-front
+
+Se placer dans le dossier :
+
+cd libheros-front
+
+Installer les dépendances :
+
+npm install
+
+## Lancer le projet
+
+Démarrer le serveur :
+
+npm run dev
+
+Le frontend sera accessible sur :
+
+http://localhost:5173
+
+---
+
+SEBAMALAI Sathush  
+BUT Informatique – Université Paris Cité
