@@ -1,4 +1,8 @@
 <script setup>
+// page de connexion : envoi des identifiants au backend,
+// récupération du token JWT puis stockage en localStorage
+// si tout se passe bien, redirection vers le dashboard
+
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
@@ -11,6 +15,7 @@ const password = ref('')
 const errorMessage = ref('')
 const loading = ref(false)
 
+// connexion utilisateur + stockage du token
 const handleLogin = async () => {
   errorMessage.value = ''
   loading.value = true

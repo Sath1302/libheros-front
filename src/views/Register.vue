@@ -1,4 +1,8 @@
 <script setup>
+// page d'inscription : je vérifie d'abord les champs côté front
+// puis j'envoie les infos au backend pour créer le compte
+// si ça marche, je redirige ensuite vers la page de connexion
+
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
@@ -19,6 +23,7 @@ const loading = ref(false)
 const errorMessage = ref('')
 const successMessage = ref('')
 
+// petites vérifications côté front avant d'envoyer l'inscription
 const handleRegister = async () => {
   errorMessage.value = ''
   successMessage.value = ''

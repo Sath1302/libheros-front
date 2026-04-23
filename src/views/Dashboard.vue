@@ -1,4 +1,8 @@
 <script setup>
+// dashboard principal : je gère ici les listes, les tâches,
+// les modals, la sidebar rétractable et le panneau de détail à droite
+// l'idée était d'avoir toute la logique principale du projet sur cette page
+
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
@@ -69,6 +73,7 @@ const getAuthHeaders = () => {
   }
 }
 
+// récupère les listes de l'utilisateur connecté
 const fetchTaskLists = async () => {
   const response = await axios.get('http://localhost:3000/task-lists', {
     headers: getAuthHeaders(),
@@ -87,6 +92,7 @@ const fetchTaskLists = async () => {
   }
 }
 
+// récupère les tâches de la liste sélectionnée
 const fetchTasksByList = async (taskListId) => {
   if (!taskListId) {
     tasks.value = []
@@ -345,6 +351,7 @@ const deleteTask = async () => {
   }
 }
 
+// ca lance le chargement principal du dashboard au montage
 const initDashboard = async () => {
   loading.value = true
   errorMessage.value = ''
