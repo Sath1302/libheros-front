@@ -20,7 +20,7 @@ npm install
 
 ## Lancer le projet
 
-Démarrer le serveur :
+Démarrer le serveur : (Bien vérifier si le backend est lancé avant)
 
 npm run dev
 
